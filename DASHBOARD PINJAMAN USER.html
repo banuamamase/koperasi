@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Koperasi Banua Mamase — App</title>
+
+  <!-- Supabase client (sama seperti sebelumnya) -->
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
+
+  <!-- Font (system / fallback) -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --primary:#007bff;
+      --accent:#00b4ff;
+      --bg1: linear-gradient(135deg,#007bffcc,#00b4ffcc);
+      --card-bg: rgba(255,255,255,0.94);
+      --glass: rgba(255,255,255,0.65);
+      --muted:#6b7280;
+      --radius:14px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: 'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: var(--bg1);
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      color:#0f172a;
+      gap:0;
+      backdrop-filter: blur(6px);
+    }
+
+    /* HEADER AREA (CIVITAS-LIKE) */
+    header.app-header{
+      padding:18px 16px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      position:sticky;
+      top:0;
+      z-index:40;
+      background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(6px);
+    }
+    .brand-left { display:flex; align-items:center; gap:12px; }
+    .brand-left img { height:44px; width:44px; border-radius:10px; object-fit:contain; background:var(--glass); padding:6px; }
+    .brand-title { font-size:16px; color:#fff; font-weight:600; text-shadow: 0 1px 0 rgba(0,0,0,0.15); }
+    .profile-mini { text-align:right; color:#f8fafc; }
+    .profile-mini .name { font-weight:600; font-size:14px; }
+    .profile-mini .role { font-size:12px; color: rgba(255,255,255,0.9); opacity:0.9 }
+
+    /* Top summary cards */
+    .summary-row { padding: 16px; display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .summary-card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border-radius: 12px;
+      padding:14px;
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(2,6,23,0.12);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .summary-card .label { font-size:13px; opacity:0.9 }
+    .summary-card .value { font-size:20px; font-weight:700; letter-spacing:0.2px }
+
+    /* MAIN CONTENT (cards + grid) */
+    main{
+      flex:1;
+      padding: 12px 14px 110px; /* leave space for bottom nav */
+      overflow-y:auto;
+    }
+
+    .home-grid {
+      margin-top:6px;
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:12px;
+    }
+
+    .menu-tile {
+      background: var(--card-bg);
+      border-radius:12px;
+      padding:12px;
+      text-align:center;
+      box-shadow: 0 6px 18px rgba(2,6,23,0.06);
+      cursor:pointer;
+      transition: transform .15s ease, box-shadow .15s;
+    }
+    .menu-tile:hover{ transform: translateY(-6px); box-shadow: 0 10px 28px rgba(2,6,23,0.12); }
+
+    .menu-ico {
+      width:44px; height:44px; border-radius:10px; margin:0 auto 8px; display:flex; align-items:center; justify-content:center;
+      font-size:18px; color:#fff;
+    }
+    /* pastel icon backgrounds like Civitas */
+    .ico-pink { background: linear-gradient(135deg,#FFDBE6,#FFB3CC); color:#7C1736; }
+    .ico-green{ background: linear-gradient(135deg,#DBFFD6,#A6F3B4); color:#14532d; }
+    .ico-blue { background: linear-gradient(135deg,#DBEAFE,#BFDBFE); color:#1e3a8a; }
+    .ico-yellow{ background: linear-gradient(135deg,#FFF4CE,#FFE59A); color:#92400e; }
+    .ico-purple{ background: linear-gradient(135deg,#EAD7FF,#D3B8FF); color:#4c1d95; }
+
+    .menu-tile .title { font-size:13px; color:var(--muted); font-weight:600; }
+
+    /* content cards */
+    .card { background: var(--card-bg); border-radius:12px; padding:12px; margin-bottom:12px; box-shadow: 0 6px 18px rgba(2,6,23,0.06); }
+    .muted { color:var(--muted); font-size:13px; }
+
+    /* loan status badges & card-left stripe */
+    .badge { padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px; display:inline-block; }
+    .badge-menunggu { background:#FEF3C7; color:#92400E; }
+    .badge-berjalan { background:#DBEAFE; color:#1E40AF; }
+    .badge-lunas { background:#DCFCE7; color:#166534; }
+
+    .card-menunggu { border-left:4px solid #F59E0B; }
+    .card-berjalan { border-left:4px solid #3B82F6; }
+    .card-lunas { border-left:4px solid #22C55E; }
+
+    /* bottom nav */
+    nav.app-nav {
+      position:fixed; left:0; right:0; bottom:0; display:flex; gap:8px; justify-content:space-around;
+      background:rgba(255,255,255,0.98); padding:10px 8px; border-top:1px solid rgba(0,0,0,0.05);
+      box-shadow: 0 -6px 18px rgba(2,6,23,0.06);
+      z-index:60;
+    }
+    nav.app-nav button { background:none; border:none; font-size:13px; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; }
+    nav.app-nav button.active { color:var(--primary); font-weight:700; }
+
+    /* utility & responsive */
+    .row { display:flex; gap:10px; align-items:center; }
+    .col { flex:1 }
+
+    @media (min-width:740px){
+      main { padding:18px 28px 120px; }
+      .home-grid { grid-template-columns: repeat(6, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="brand-left">
+      <img src="LOGO-RSBM.png" alt="Logo RSBM" />
+      <div>
+        <div class="brand-title">Koperasi Banua Mamase</div>
+        <div style="font-size:12px; color:rgba(255,255,255,0.9)">Untuk karyawan RSBM</div>
+      </div>
+    </div>
+
+    <div class="profile-mini">
+      <div class="name" id="miniName">Andi Saputra</div>
+      <div class="role">Anggota • NIP RSBM001</div>
+    </div>
+  </header>
+
+  <!-- SUMMARY (Top cards like Civitas) -->
+  <div class="summary-row" id="summaryRow" style="padding-left:12px;padding-right:12px;">
+    <div class="summary-card" id="card-simpanan">
+      <div class="label">Total Simpanan</div>
+      <div class="value" id="totalSimpanan">Rp —</div>
+      <div class="muted" id="savingsCount">— transaksi</div>
+    </div>
+    <div class="summary-card" id="card-pinjaman">
+      <div class="label">Total Pinjaman Aktif</div>
+      <div class="value" id="totalPinjaman">Rp —</div>
+      <div class="muted" id="loansCount">— pinjaman</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main id="content">
+    <!-- Home layout (will be injected) -->
+    <section id="homeView">
+      <h2 style="color:#04263b;">Halo, <span id="homeName">Andi</span> 👋</h2>
+      <p class="muted">Ringkasan akun koperasi Anda. Gunakan menu cepat di bawah untuk mengakses fitur.</p>
+
+      <!-- Grid menu -->
+      <div class="home-grid" style="margin-top:14px;">
+        <div class="menu-tile" onclick="showPage('savings')">
+          <div class="menu-ico ico-blue">💰</div>
+          <div class="title">Simpanan</div>
+        </div>
+        <div class="menu-tile" onclick="showPage('loans')">
+          <div class="menu-ico ico-green">📄</div>
+          <div class="title">Pinjaman</div>
+        </div>
+        <div class="menu-tile" onclick="showPage('apply')">
+          <div class="menu-ico ico-pink">➕</div>
+          <div class="title">Ajukan Pinjaman</div>
+        </div>
+        <div class="menu-tile" onclick="showPage('riwayat')">
+          <div class="menu-ico ico-yellow">🕘</div>
+          <div class="title">Riwayat</div>
+        </div>
+        <div class="menu-tile" onclick="showPage('pengumuman')">
+          <div class="menu-ico ico-purple">📢</div>
+          <div class="title">Pengumuman</div>
+        </div>
+        <div class="menu-tile" onclick="showPage('profile')">
+          <div class="menu-ico ico-blue">👤</div>
+          <div class="title">Profil</div>
+        </div>
+      </div>
+
+      <!-- Quick preview sections -->
+      <div style="margin-top:16px;">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div><strong>Pinjaman Terbaru</strong><div class="muted" style="font-size:13px">Lihat pengajuan terbaru</div></div>
+            <div id="quickLoanCount" class="muted">—</div>
+          </div>
+          <div id="quickLoanList" style="margin-top:10px"></div>
+        </div>
+
+        <div class="card">
+          <strong>Pengumuman</strong>
+          <div id="quickAnnouncement" class="muted" style="margin-top:8px">Tidak ada pengumuman.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="app-nav">
+    <button id="nav-home" class="active" onclick="showPage('home')">🏠<span style="font-size:12px">Home</span></button>
+    <button id="nav-savings" onclick="showPage('savings')">💰<span style="font-size:12px">Simpanan</span></button>
+    <button id="nav-loans" onclick="showPage('loans')">📄<span style="font-size:12px">Pinjaman</span></button>
+    <button id="nav-profile" onclick="showPage('profile')">👤<span style="font-size:12px">Profil</span></button>
+  </nav>
+
+  <!-- --- SCRIPT (SYSTEM LOGIC PRESERVED) --- -->
+  <script>
+    // ==== Supabase (sama seperti sebelumnya) ====
+    const SUPABASE_URL = "https://rywikjgwvjawdnmxiqkh.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5d2lramd3dmphd2RubXhpcWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5NjMxOTYsImV4cCI6MjA3MjUzOTE5Nn0.4DiwlSjTgzVsu5skB2bDNRA8r1viklR8D2NXxtXDiG8";
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // optional: nanti bisa di-set saat login
+    // window.currentUserId = "uuid-user-xxx";
+
+    // ----- small helper: set active bottom nav btn -----
+    function setActiveNav(key) {
+      document.querySelectorAll('nav.app-nav button').forEach(b => b.classList.remove('active'));
+      const id = { home:'nav-home', savings:'nav-savings', loans:'nav-loans', profile:'nav-profile' }[key];
+      if (id) document.getElementById(id).classList.add('active');
+    }
+
+    // ----- SHOW / NAVIGATION (ke halaman tanpa memecah sistem) -----
+    function showPage(page) {
+  setActiveNav(page === 'apply' ? 'nav-loans' : page);
+
+  const main = document.getElementById('content');
+
+  if (page === 'home') {
+    // gunakan template string, bukan outerHTML langsung
+    main.innerHTML = `
+      <section id="homeView">
+        <h2 style="color:#04263b;">Halo, <span id="homeName">Andi</span> 👋</h2>
+        <p class="muted">Ringkasan akun koperasi Anda. Gunakan menu cepat di bawah untuk mengakses fitur.</p>
+
+        <div class="home-grid" style="margin-top:14px;">
+          <div class="menu-tile" onclick="showPage('savings')">
+            <div class="menu-ico ico-blue">💰</div>
+            <div class="title">Simpanan</div>
+          </div>
+          <div class="menu-tile" onclick="showPage('loans')">
+            <div class="menu-ico ico-green">📄</div>
+            <div class="title">Pinjaman</div>
+          </div>
+          <div class="menu-tile" onclick="showPage('apply')">
+            <div class="menu-ico ico-pink">➕</div>
+            <div class="title">Ajukan Pinjaman</div>
+          </div>
+          <div class="menu-tile" onclick="showPage('riwayat')">
+            <div class="menu-ico ico-yellow">🕘</div>
+            <div class="title">Riwayat</div>
+          </div>
+          <div class="menu-tile" onclick="showPage('pengumuman')">
+            <div class="menu-ico ico-purple">📢</div>
+            <div class="title">Pengumuman</div>
+          </div>
+          <div class="menu-tile" onclick="showPage('profile')">
+            <div class="menu-ico ico-blue">👤</div>
+            <div class="title">Profil</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div><strong>Pinjaman Terbaru</strong><div class="muted" style="font-size:13px">Lihat pengajuan terbaru</div></div>
+              <div id="quickLoanCount" class="muted">—</div>
+            </div>
+            <div id="quickLoanList" style="margin-top:10px"></div>
+          </div>
+
+          <div class="card">
+            <strong>Pengumuman</strong>
+            <div id="quickAnnouncement" class="muted" style="margin-top:8px">Tidak ada pengumuman.</div>
+          </div>
+        </div>
+      </section>
+    `;
+
+    // reload data untuk home
+    refreshSummary();
+    loadQuickLoans();
+    loadQuickAnnouncement();
+    return;
+      }
+
+      if (page === 'savings') {
+        main.innerHTML = `<h2>Riwayat Simpanan</h2><div id="savings-list" class="card">Memuat data...</div>`;
+        loadSavings();
+        return;
+      }
+
+      if (page === 'loans') {
+        main.innerHTML = `<h2>Riwayat Pinjaman</h2><div id="loans-list" class="card">Memuat data...</div>`;
+        loadLoans();
+        return;
+      }
+
+      if (page === 'apply') {
+        main.innerHTML = `
+          <h2>Ajukan Pinjaman</h2>
+          <form id="loanForm" class="card" onsubmit="return submitLoan(event)">
+            <div class="form-field">
+              <label for="loanAmount">Jumlah Pinjaman (Rp)</label>
+              <input id="loanAmount" type="number" min="100000" step="1000" placeholder="contoh: 5000000" required />
+            </div>
+            <div class="form-field">
+              <label for="loanTenor">Tenor (bulan)</label>
+              <select id="loanTenor">
+                <option value="3">3</option>
+                <option value="6">6</option>
+                <option value="12" selected>12</option>
+                <option value="24">24</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="loanReason">Alasan Pengajuan</label>
+              <textarea id="loanReason" rows="3" placeholder="Tuliskan alasan..." required></textarea>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn-primary" id="loanSubmitBtn" type="submit">Ajukan Pinjaman</button>
+              <button type="button" onclick="showPage('loans')" style="padding:10px;border-radius:10px;border:1px solid #ddd;background:#fff">Batal</button>
+            </div>
+          </form>
+          <h2 style="margin-top:14px">Riwayat Pinjaman</h2>
+          <div id="loans-list" class="card">Memuat data...</div>
+        `;
+        loadLoans();
+        return;
+      }
+
+      if (page === 'riwayat') {
+        main.innerHTML = `<h2>Riwayat Lengkap</h2><div id="all-history" class="card">Memuat data...</div>`;
+        // bisa gabungkan loadSavings + loadLoans jika diperlukan
+        loadSavingsForHistory();
+        loadLoansForHistory();
+        return;
+      }
+
+      if (page === 'pengumuman') {
+        main.innerHTML = `<h2>Pengumuman</h2><div id="announcement-list" class="card">Memuat data...</div>`;
+        loadAnnouncements();
+        return;
+      }
+
+      if (page === 'profile') {
+        main.innerHTML = `
+          <h2>Profil Anggota</h2>
+          <div class="card">
+            <p><strong>Nama:</strong> <span id="prof-name">Andi Saputra</span></p>
+            <p><strong>NIP:</strong> <span id="prof-nip">RSBM001</span></p>
+            <p><strong>Email:</strong> <span id="prof-email">andi@rsbm.co.id</span></p>
+          </div>
+        `;
+        return;
+      }
+    }
+
+    // ---------------- DATA FUNCTIONS (preserve/extend system) ----------------
+
+    // loadSavings (sama struktural dgn sebelumnya, sesuaikan nama kolom: jenis_simpanan, jumlah, tanggal)
+    async function loadSavings() {
+      const { data, error } = await client
+        .from('savings')
+        .select('jenis_simpanan, jumlah, tanggal')
+        .order('tanggal', { ascending: false });
+
+      const list = document.getElementById('savings-list');
+      if (!list) return;
+
+      if (error) {
+        list.innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
+        console.error(error);
+        return;
+      }
+      if (!data || data.length === 0) {
+        list.innerHTML = `<p class="muted">Belum ada simpanan.</p>`;
+        return;
+      }
+
+      list.innerHTML = '';
+      data.forEach(s => {
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.innerHTML = `
+          <p><strong>Jenis:</strong> ${s.jenis_simpanan}</p>
+          <p><strong>Jumlah:</strong> Rp ${Number(s.jumlah).toLocaleString('id-ID')}</p>
+          <p class="muted"><strong>Tanggal:</strong> ${new Date(s.tanggal).toLocaleDateString('id-ID')}</p>
+        `;
+        list.appendChild(el);
+      });
+
+      // refresh totals
+      refreshSummary();
+    }
+
+    // loans loader with badges & card-left stripe (preserve + enhance)
+    function normalizeStatus(st) {
+      if (!st) return 'Menunggu';
+      const s = (''+st).toLowerCase();
+      if (s.includes('lunas')) return 'Lunas';
+      if (s.includes('setuju') || s.includes('jalan') || s.includes('berjalan') || s.includes('disetujui')) return 'Berjalan';
+      return 'Menunggu';
+    }
+    function statusToClasses(status){
+      const norm = normalizeStatus(status);
+      if (norm === 'Lunas') return { card:'card-lunas', badge:'badge-lunas', label:'Lunas' };
+      if (norm === 'Berjalan') return { card:'card-berjalan', badge:'badge-berjalan', label:'Berjalan' };
+      return { card:'card-menunggu', badge:'badge-menunggu', label:'Menunggu' };
+    }
+
+    async function loadLoans() {
+      const container = document.getElementById('loans-list');
+      if (!container) return;
+
+      const { data, error } = await client
+        .from('loans')
+        .select('id, jumlah, tenor, status, alasan, tanggal_pengajuan, tanggal_pencairan')
+        .order('tanggal_pengajuan', { ascending: false });
+
+      if (error) {
+        container.innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
+        console.error(error);
+        return;
+      }
+      if (!data || data.length === 0) {
+        container.innerHTML = `<p class="muted">Belum ada pinjaman.</p>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      data.forEach(l => {
+        const cls = statusToClasses(l.status);
+        const el = document.createElement('div');
+        el.className = `card ${cls.card}`;
+        el.innerHTML = `
+          <p><strong>Jumlah:</strong> Rp ${Number(l.jumlah).toLocaleString('id-ID')}</p>
+          <p class="muted"><strong>Tenor:</strong> ${l.tenor} bulan</p>
+          <p><strong>Alasan:</strong> ${l.alasan || '-'}</p>
+          <p class="muted"><strong>Pengajuan:</strong> ${l.tanggal_pengajuan ? new Date(l.tanggal_pengajuan).toLocaleDateString('id-ID') : '-'}</p>
+          <p class="muted"><strong>Pencairan:</strong> ${l.tanggal_pencairan ? new Date(l.tanggal_pencairan).toLocaleDateString('id-ID') : '-'}</p>
+          <p><strong>Status:</strong> <span class="badge ${cls.badge}">${cls.label}</span></p>
+        `;
+        container.appendChild(el);
+      });
+
+      // update summary totals
+      refreshSummary();
+    }
+
+    // quick loan preview on Home
+    async function loadQuickLoans() {
+      const { data } = await client
+        .from('loans')
+        .select('id, jumlah, status, tanggal_pengajuan')
+        .order('tanggal_pengajuan', { ascending: false })
+        .limit(3);
+
+      const area = document.getElementById('quickLoanList');
+      if (!area) return;
+      if (!data || data.length === 0) { area.innerHTML = '<div class="muted">Belum ada pinjaman</div>'; return; }
+      area.innerHTML = '';
+      data.forEach(l => {
+        const norm = normalizeStatus(l.status);
+        area.innerHTML += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(0,0,0,0.04)"><div><strong>Rp ${Number(l.jumlah).toLocaleString('id-ID')}</strong><div class="muted" style="font-size:12px">${new Date(l.tanggal_pengajuan).toLocaleDateString('id-ID')}</div></div><div class="muted">${norm}</div></div>`;
+      });
+      document.getElementById('quickLoanCount').innerText = data.length + ' terbaru';
+    }
+
+    // quick announcement preview
+    async function loadQuickAnnouncement() {
+      const { data } = await client
+        .from('announcements')
+        .select('judul, isi, tanggal')
+        .order('tanggal', { ascending: false })
+        .limit(1);
+
+      const area = document.getElementById('quickAnnouncement');
+      if (!area) return;
+      if (!data || data.length === 0) { area.innerText = 'Tidak ada pengumuman.'; return; }
+      area.innerText = `${data[0].judul} — ${data[0].isi}`;
+    }
+
+    // announcements list page
+    async function loadAnnouncements() {
+      const container = document.getElementById('announcement-list');
+      if (!container) return;
+      const { data, error } = await client
+        .from('announcements')
+        .select('judul, isi, tanggal')
+        .order('tanggal', { ascending: false });
+
+      if (error) { container.innerHTML = `<p style="color:red">${error.message}</p>`; return; }
+      if (!data || data.length === 0) { container.innerHTML = `<p class="muted">Tidak ada pengumuman.</p>`; return; }
+
+      container.innerHTML = data.map(a => `<div style="margin-bottom:10px"><strong>${a.judul}</strong><div class="muted" style="font-size:13px">${a.isi}</div><div class="muted" style="font-size:12px">${new Date(a.tanggal).toLocaleDateString('id-ID')}</div></div>`).join('');
+    }
+
+    // History loaders for riwayat page (optional combined)
+    async function loadSavingsForHistory(){
+      const { data } = await client.from('savings').select('jenis_simpanan, jumlah, tanggal').order('tanggal',{ascending:false});
+      const el = document.getElementById('all-history');
+      if (!el) return;
+      el.innerHTML = '<h3>Simpanan</h3>' + (data && data.length ? data.map(s=>`<div style="margin-bottom:8px">${s.jenis_simpanan} — Rp ${Number(s.jumlah).toLocaleString('id-ID')} <div class="muted">${new Date(s.tanggal).toLocaleDateString('id-ID')}</div></div>`).join('') : '<div class="muted">Belum ada</div>');
+    }
+    async function loadLoansForHistory(){
+      const { data } = await client.from('loans').select('jumlah,tenor,status,tanggal_pengajuan').order('tanggal_pengajuan',{ascending:false});
+      const el = document.getElementById('all-history');
+      if (!el) return;
+      el.innerHTML += '<hr/><h3>Pinjaman</h3>' + (data && data.length ? data.map(l=>`<div style="margin-bottom:8px">Rp ${Number(l.jumlah).toLocaleString('id-ID')} — ${normalizeStatus(l.status)} <div class="muted">${new Date(l.tanggal_pengajuan).toLocaleDateString('id-ID')}</div></div>`).join('') : '<div class="muted">Belum ada</div>');
+    }
+
+    // submitLoan (preserve behavior) — uses window.currentUserId if set
+    async function submitLoan(e){
+      e.preventDefault();
+      const btn = document.getElementById('loanSubmitBtn');
+      if (btn) btn.disabled = true;
+
+      const jumlah = Number(document.getElementById('loanAmount').value || 0);
+      const tenor  = parseInt(document.getElementById('loanTenor').value || '0',10);
+      const alasan = (document.getElementById('loanReason').value || '').trim();
+
+      if (!jumlah || !tenor || !alasan) {
+        alert('Mohon lengkapi semua data pengajuan.');
+        if (btn) btn.disabled = false;
+        return false;
+      }
+
+      const row = {
+        jumlah,
+        tenor,
+        alasan,
+        status: 'Menunggu',
+        tanggal_pengajuan: new Date().toISOString().slice(0,10)
+      };
+      if (window.currentUserId) row.user_id = window.currentUserId;
+
+      const { error } = await client.from('loans').insert([row]);
+      if (error) {
+        alert('Gagal mengajukan pinjaman: ' + error.message);
+        if (btn) btn.disabled = false;
+        return false;
+      }
+
+      alert('Pengajuan pinjaman berhasil dikirim!');
+      if (btn) btn.disabled = false;
+      // refresh list
+      loadLoans();
+      return false;
+    }
+
+    // refresh summary: totals for savings and active loans
+    async function refreshSummary(){
+      // total simpanan
+      try {
+        const { data: sdata } = await client.from('savings').select('jumlah');
+        const totalS = (sdata && sdata.length) ? sdata.reduce((a,b)=>a+Number(b.jumlah),0) : 0;
+        document.getElementById('totalSimpanan').innerText = 'Rp ' + totalS.toLocaleString('id-ID');
+        document.getElementById('savingsCount').innerText = (sdata? sdata.length : 0) + ' transaksi';
+      } catch(err){ console.warn(err); }
+
+      // total pinjaman aktif (non-lunas)
+      try {
+        const { data: ldata } = await client.from('loans').select('jumlah,status');
+        const active = (ldata || []).filter(x => normalizeStatus(x.status) !== 'Lunas');
+        const totalL = active.reduce((a,b)=>a+Number(b.jumlah),0);
+        document.getElementById('totalPinjaman').innerText = 'Rp ' + totalL.toLocaleString('id-ID');
+        document.getElementById('loansCount').innerText = (ldata? ldata.length : 0) + ' pinjaman';
+      } catch(err){ console.warn(err); }
+    }
+
+    // initial load
+    (async function init(){
+      // set initial small UI values (can be replaced by login later)
+      document.getElementById('miniName').innerText = 'Andi Saputra';
+      document.getElementById('homeName').innerText = 'Andi';
+
+      // load summary & quicks
+      await refreshSummary();
+      await loadQuickLoans();
+      await loadQuickAnnouncement();
+
+      // subscribe realtime (optional) to refresh summary and lists automatically
+      client
+        .channel('realtime-all')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'savings' }, payload => {
+          refreshSummary();
+          if (document.getElementById('savings-list')) loadSavings();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, payload => {
+          refreshSummary();
+          if (document.getElementById('loans-list')) loadLoans();
+        })
+        .subscribe()
+        .catch(e => console.warn('subscribe:', e));
+    })();
+
+    // set default page home
+    showPage('home');
+  </script>
+</body>
+</html>
