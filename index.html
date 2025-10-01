@@ -1,638 +1,606 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Koperasi Banua Mamase — App</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>KOPBAM • Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#0EA5E9; --blue2:#22D3EE; --blue3:#1D4ED8;
+    --ink:#0F172A; --text:#0B1220; --muted:#5B7BA0;
+    --white:#ffffff; --line:#DDE8F5; --chip:#E8F3FF;
+    --ok:#10B981; --warn:#F59E0B; --bad:#EF4444;
+    --radius:18px; --radius-md:14px; --radius-lg:22px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif; color:var(--text);
+    background: linear-gradient(180deg, #E6F4FF 0%, #CDEBFF 45%, #BFE6FF 100%);
+    min-height:100dvh;
+  }
+  .bg-wrap{position:fixed; inset:0; z-index:-1; overflow:hidden}
+  .bg-blob{position:absolute; width:120vmax; height:120vmax; left:50%; top:0; transform:translateX(-50%); filter:blur(60px); opacity:.55}
+  .b1{background:radial-gradient(closest-side at 40% 20%, #9EE8FF, transparent 60%)}
+  .b2{background:radial-gradient(closest-side at 70% 0%, #A4D8FF, transparent 60%)}
+  .b3{background:radial-gradient(closest-side at 30% 0%, #B0F1FF, transparent 60%)}
+  .app{width:min(520px,100%); margin:0 auto; padding:0 14px 100px}
 
-  <!-- Supabase client (sama seperti sebelumnya) -->
-  <script src="https://unpkg.com/@supabase/supabase-js"></script>
+  /* Logo */
+  .logo{width:28px; height:28px; object-fit:contain; border-radius:8px; display:block}
+  .logo-xl{width:64px; height:64px; object-fit:contain; border-radius:14px; display:block}
 
-  <!-- Font (system / fallback) -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  /* = SPLASH = */
+  .splash{position:fixed; inset:0; display:grid; place-items:center; background:linear-gradient(135deg,#08B3FF 0%,#1AC8FF 50%,#4DDCFF 100%); z-index:99}
+  .splash-logo{display:flex; align-items:center; gap:12px; color:#fff; font-weight:900; font-size:1.1rem}
+  .fade-out{animation:fadeout .45s ease both}
+  @keyframes fadeout{to{opacity:0; visibility:hidden}}
 
-  <style>
-    :root{
-      --primary:#007bff;
-      --accent:#00b4ff;
-      --bg1: linear-gradient(135deg,#007bffcc,#00b4ffcc);
-      --card-bg: rgba(255,255,255,0.94);
-      --glass: rgba(255,255,255,0.65);
-      --muted:#6b7280;
-      --radius:14px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: 'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      background: var(--bg1);
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      color:#0f172a;
-      gap:0;
-      backdrop-filter: blur(6px);
-    }
+  /* = APPBAR = */
+  .appbar{position:sticky; top:0; z-index:10; background:linear-gradient(180deg,#0EB6FE 0%, #199AFF 100%); color:#fff; border-radius:0 0 14px 14px; box-shadow:0 10px 30px rgba(0,0,0,.12)}
+  .appbar-inner{display:flex; align-items:center; justify-content:space-between; padding:14px}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:900}
+  .badge-pill{font-weight:800; background:rgba(255,255,255,.3); padding:6px 10px; border-radius:999px}
 
-    /* HEADER AREA (CIVITAS-LIKE) */
-    header.app-header{
-      padding:18px 16px;
-      display:flex;
-      gap:12px;
-      align-items:center;
-      justify-content:space-between;
-      position:sticky;
-      top:0;
-      z-index:40;
-      background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      backdrop-filter: blur(6px);
-    }
-    .brand-left { display:flex; align-items:center; gap:12px; }
-    .brand-left img { height:44px; width:44px; border-radius:10px; object-fit:contain; background:var(--glass); padding:6px; }
-    .brand-title { font-size:16px; color:#fff; font-weight:600; text-shadow: 0 1px 0 rgba(0,0,0,0.15); }
-    .profile-mini { text-align:right; color:#f8fafc; }
-    .profile-mini .name { font-weight:600; font-size:14px; }
-    .profile-mini .role { font-size:12px; color: rgba(255,255,255,0.9); opacity:0.9 }
+  /* = CARDS = */
+  .card{background:#fff; border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:0 18px 40px rgba(31,97,171,.12); padding:16px; margin:14px 0}
+  .title{font-weight:900; margin-bottom:8px}
+  .muted{color:var(--muted); font-weight:600}
 
-    /* Top summary cards */
-    .summary-row { padding: 16px; display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-    .summary-card{
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-      border-radius: 12px;
-      padding:14px;
-      color: #fff;
-      box-shadow: 0 6px 18px rgba(2,6,23,0.12);
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-    .summary-card .label { font-size:13px; opacity:0.9 }
-    .summary-card .value { font-size:20px; font-weight:700; letter-spacing:0.2px }
+  /* = INPUTS/BUTTONS = */
+  label{font-size:.92rem; color:#1B3C63; font-weight:700}
+  input,textarea,select{width:100%; padding:13px 14px; border-radius:14px; border:1px solid var(--line); background:#F7FBFF; color:#083356}
+  input:focus,textarea:focus,select:focus{outline:none; border-color:#9AD9FF; box-shadow:0 0 0 3px rgba(0,160,255,.15)}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:13px 16px; border-radius:999px; border:1px solid rgba(0,0,0,.04); cursor:pointer; font-weight:900}
+  .btn-primary{background:linear-gradient(180deg, #48D3FF 0%, #0EA5E9 100%); color:#05263C; box-shadow:0 12px 30px rgba(14,165,233,.35)}
+  .btn-ghost{background:#fff; color:#0F2F49; border:1px solid #D7E8F9}
+  .btn[disabled]{opacity:.55; cursor:not-allowed}
 
-    /* MAIN CONTENT (cards + grid) */
-    main{
-      flex:1;
-      padding: 12px 14px 110px; /* leave space for bottom nav */
-      overflow-y:auto;
-    }
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  @media(max-width:460px){ .grid2{grid-template-columns:1fr} }
 
-    .home-grid {
-      margin-top:6px;
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:12px;
-    }
+  /* = VIEW = */
+  .view{display:none} .view.active{display:block}
+  .fade{animation:fade .25s ease both} @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
 
-    .menu-tile {
-      background: var(--card-bg);
-      border-radius:12px;
-      padding:12px;
-      text-align:center;
-      box-shadow: 0 6px 18px rgba(2,6,23,0.06);
-      cursor:pointer;
-      transition: transform .15s ease, box-shadow .15s;
-    }
-    .menu-tile:hover{ transform: translateY(-6px); box-shadow: 0 10px 28px rgba(2,6,23,0.12); }
+  /* = TOP MENU = */
+  .topmenu{padding:12px 14px}
+  .menu-row{display:grid; grid-template-columns:repeat(5,1fr); gap:10px}
+  .menu-item{display:flex; flex-direction:column; align-items:center; text-align:center}
+  .ico-wrap{width:52px; height:52px; border-radius:16px; background:linear-gradient(180deg,#F9FDFF 0%, #EEF7FF 100%); display:grid; place-items:center; border:1px solid #DCEBFA; box-shadow:0 10px 20px rgba(32,114,189,.12)}
+  .ico-wrap svg{width:28px; height:28px}
+  .mname{font-size:.85rem; font-weight:800; margin-top:6px; color:#0E2E4B}
 
-    .menu-ico {
-      width:44px; height:44px; border-radius:10px; margin:0 auto 8px; display:flex; align-items:center; justify-content:center;
-      font-size:18px; color:#fff;
-    }
-    /* pastel icon backgrounds like Civitas */
-    .ico-pink { background: linear-gradient(135deg,#FFDBE6,#FFB3CC); color:#7C1736; }
-    .ico-green{ background: linear-gradient(135deg,#DBFFD6,#A6F3B4); color:#14532d; }
-    .ico-blue { background: linear-gradient(135deg,#DBEAFE,#BFDBFE); color:#1e3a8a; }
-    .ico-yellow{ background: linear-gradient(135deg,#FFF4CE,#FFE59A); color:#92400e; }
-    .ico-purple{ background: linear-gradient(135deg,#EAD7FF,#D3B8FF); color:#4c1d95; }
+  /* = HERO = */
+  .hero{position:relative; padding:18px; border-radius:22px; overflow:hidden; background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.84)); border:1px solid #E6F1FC}
+  .hero .big{font-size:1.9rem; font-weight:900; color:#0A2035}
+  .chip{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background:var(--chip); font-weight:800; color:#1C3B5A; border:1px solid #D8E9FF}
 
-    .menu-tile .title { font-size:13px; color:var(--muted); font-weight:600; }
+  /* = BADGES = */
+  .badge{display:inline-flex; gap:8px; align-items:center; padding:8px 12px; border-radius:999px; font-weight:800}
+  .b-ok{background:#E6FFF6; color:#066A4C; border:1px solid #BDF0E2}
+  .b-warn{background:#FFF5E6; color:#7A4B02; border:1px solid #FFE0B0}
+  .b-info{background:#EEF7FF; color:#14446E; border:1px solid #CDE5FF}
+  .b-bad{background:#FFECEB; color:#7A1C1C; border:1px solid #FFC9C6}
 
-    /* content cards */
-    .card { background: var(--card-bg); border-radius:12px; padding:12px; margin-bottom:12px; box-shadow: 0 6px 18px rgba(2,6,23,0.06); }
-    .muted { color:var(--muted); font-size:13px; }
+  /* = TICKER = */
+  .ticker-card{padding:0; overflow:hidden}
+  .ticker-head{display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid #E6F1FC; color:#0B3B64; font-weight:900}
+  .ticker{white-space:nowrap; overflow:hidden; padding:10px 0; background:linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,.02) 50%, rgba(0,0,0,0))}
+  .ticker > div{display:inline-block; padding-left:100%; animation:ticker 16s linear infinite}
+  .ticker:hover > div{animation-play-state:paused}
+  @keyframes ticker { 0% { transform: translateX(0) } 100% { transform: translateX(-100%) } }
 
-    /* loan status badges & card-left stripe */
-    .badge { padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px; display:inline-block; }
-    .badge-menunggu { background:#FEF3C7; color:#92400E; }
-    .badge-berjalan { background:#DBEAFE; color:#1E40AF; }
-    .badge-lunas { background:#DCFCE7; color:#166534; }
-
-    .card-menunggu { border-left:4px solid #F59E0B; }
-    .card-berjalan { border-left:4px solid #3B82F6; }
-    .card-lunas { border-left:4px solid #22C55E; }
-
-    /* bottom nav */
-    nav.app-nav {
-      position:fixed; left:0; right:0; bottom:0; display:flex; gap:8px; justify-content:space-around;
-      background:rgba(255,255,255,0.98); padding:10px 8px; border-top:1px solid rgba(0,0,0,0.05);
-      box-shadow: 0 -6px 18px rgba(2,6,23,0.06);
-      z-index:60;
-    }
-    nav.app-nav button { background:none; border:none; font-size:13px; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; }
-    nav.app-nav button.active { color:var(--primary); font-weight:700; }
-
-    /* utility & responsive */
-    .row { display:flex; gap:10px; align-items:center; }
-    .col { flex:1 }
-
-    @media (min-width:740px){
-      main { padding:18px 28px 120px; }
-      .home-grid { grid-template-columns: repeat(6, 1fr); }
-    }
-  </style>
+  /* = FOOTER KECIL = */
+  .foot{margin:18px 0 8px; text-align:center; color:#6A88AA; font-weight:700; font-size:.86rem}
+</style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <header class="app-header">
-    <div class="brand-left">
-      <img src="LOGO-RSBM.png" alt="Logo RSBM" />
-      <div>
-        <div class="brand-title">Koperasi Banua Mamase</div>
-        <div style="font-size:12px; color:rgba(255,255,255,0.9)">Untuk karyawan RSBM</div>
-      </div>
-    </div>
+<!-- BG parallax -->
+<div class="bg-wrap">
+  <div class="bg-blob b1"></div>
+  <div class="bg-blob b2"></div>
+  <div class="bg-blob b3"></div>
+</div>
 
-    <div class="profile-mini">
-      <div class="name" id="miniName">Andi Saputra</div>
-      <div class="role">Anggota • NIP RSBM001</div>
-    </div>
-  </header>
-
-  <!-- SUMMARY (Top cards like Civitas) -->
-  <div class="summary-row" id="summaryRow" style="padding-left:12px;padding-right:12px;">
-    <div class="summary-card" id="card-simpanan">
-      <div class="label">Total Simpanan</div>
-      <div class="value" id="totalSimpanan">Rp —</div>
-      <div class="muted" id="savingsCount">— transaksi</div>
-    </div>
-    <div class="summary-card" id="card-pinjaman">
-      <div class="label">Total Pinjaman Aktif</div>
-      <div class="value" id="totalPinjaman">Rp —</div>
-      <div class="muted" id="loansCount">— pinjaman</div>
-    </div>
+<!-- SPLASH pakai logo dari assets -->
+<div id="splash" class="splash">
+  <div class="splash-logo">
+    <img class="logo-xl" src="assets/LOGO.png" alt="KOPBAM" loading="eager">
+    KOPBAM
   </div>
+</div>
 
-  <!-- MAIN CONTENT -->
-  <main id="content">
-    <!-- Home layout (will be injected) -->
-    <section id="homeView">
-      <h2 style="color:#04263b;">Halo, <span id="homeName">Andi</span> 👋</h2>
-      <p class="muted">Ringkasan akun koperasi Anda. Gunakan menu cepat di bawah untuk mengakses fitur.</p>
+<div class="app">
 
-      <!-- Grid menu -->
-      <div class="home-grid" style="margin-top:14px;">
-        <div class="menu-tile" onclick="showPage('savings')">
-          <div class="menu-ico ico-blue">💰</div>
-          <div class="title">Simpanan</div>
+  <!-- ===== LOGIN / REGISTER ===== -->
+  <section id="auth" class="view active fade">
+    <div class="appbar">
+      <div class="appbar-inner">
+        <div class="brand">
+          <img class="logo" src="assets/LOGO.png" alt="KOPBAM" loading="eager">
+          KOPBAM
         </div>
-        <div class="menu-tile" onclick="showPage('loans')">
-          <div class="menu-ico ico-green">📄</div>
-          <div class="title">Pinjaman</div>
+        <div class="badge-pill">Portal Karyawan</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">Masuk dengan NIK & NIP</div>
+      <form id="formLogin" onsubmit="event.preventDefault(); doLogin()">
+        <label>NIK</label>
+        <input id="nik" maxlength="16" inputmode="numeric" placeholder="16 digit NIK" required>
+        <label style="margin-top:8px">NIP</label>
+        <input id="nip" inputmode="numeric" placeholder="NIP Karyawan RSBM" required>
+        <div class="row" style="margin-top:12px">
+          <button class="btn btn-primary" type="submit">Masuk</button>
+          <button class="btn btn-ghost" type="button" onclick="switchAuth('reg')">Buat akun</button>
         </div>
-        <div class="menu-tile" onclick="showPage('apply')">
-          <div class="menu-ico ico-pink">➕</div>
-          <div class="title">Ajukan Pinjaman</div>
+      </form>
+
+      <form id="formReg" style="display:none" onsubmit="event.preventDefault(); doSignup()">
+        <div class="title" style="margin-top:10px">Daftar Akun</div>
+        <label>NIK</label><input id="r_nik" maxlength="16" inputmode="numeric" required>
+        <label style="margin-top:8px">NIP</label><input id="r_nip" inputmode="numeric" required>
+        <label style="margin-top:8px">Nama Lengkap</label><input id="r_nama" required>
+        <label style="margin-top:8px">Nomor HP</label><input id="r_hp" inputmode="numeric" placeholder="62xxxxxxxxx" required>
+        <div class="row" style="margin-top:12px">
+          <button class="btn btn-ghost" type="button" onclick="switchAuth('login')">Batal</button>
+          <button class="btn btn-primary" type="submit">Daftar</button>
         </div>
-        <div class="menu-tile" onclick="showPage('riwayat')">
-          <div class="menu-ico ico-yellow">🕘</div>
-          <div class="title">Riwayat</div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== APP VIEW ===== -->
+  <section id="appView" class="view">
+
+    <!-- Appbar Dashboard -->
+    <div class="appbar">
+      <div class="appbar-inner">
+        <div class="brand">
+          <img class="logo" src="assets/LOGO.png" alt="KOPBAM" loading="eager">
+          KOPBAM
         </div>
-        <div class="menu-tile" onclick="showPage('pengumuman')">
-          <div class="menu-ico ico-purple">📢</div>
-          <div class="title">Pengumuman</div>
-        </div>
-        <div class="menu-tile" onclick="showPage('profile')">
-          <div class="menu-ico ico-blue">👤</div>
-          <div class="title">Profil</div>
-        </div>
+        <div class="badge-pill">Periode <span id="period">2025</span></div>
       </div>
 
-      <!-- Quick preview sections -->
-      <div style="margin-top:16px;">
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div><strong>Pinjaman Terbaru</strong><div class="muted" style="font-size:13px">Lihat pengajuan terbaru</div></div>
-            <div id="quickLoanCount" class="muted">—</div>
+      <!-- Top menu -->
+      <div class="topmenu">
+        <div class="menu-row">
+          <div class="menu-item" onclick="switchTab('home')">
+            <div class="ico-wrap" title="Beranda">
+              <svg viewBox="0 0 24 24" fill="#1E90FF"><path d="M12 3 2 12h3v9h6v-6h2v6h6v-9h3z"/></svg>
+            </div>
+            <div class="mname">Home</div>
           </div>
-          <div id="quickLoanList" style="margin-top:10px"></div>
-        </div>
-
-        <div class="card">
-          <strong>Pengumuman</strong>
-          <div id="quickAnnouncement" class="muted" style="margin-top:8px">Tidak ada pengumuman.</div>
+          <div class="menu-item" onclick="switchTab('loans')">
+            <div class="ico-wrap" title="Pinjaman">
+              <svg viewBox="0 0 24 24" fill="#0EA5E9"><path d="M3 6h18v12H3zM3 10h18"/></svg>
+            </div>
+            <div class="mname">Pinjaman</div>
+          </div>
+          <div class="menu-item" onclick="switchTab('account')">
+            <div class="ico-wrap" title="Akun">
+              <svg viewBox="0 0 24 24" fill="#34C759"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5Z"/></svg>
+            </div>
+            <div class="mname">Akun</div>
+          </div>
+          <div class="menu-item" onclick="switchTab('settings')">
+            <div class="ico-wrap" title="Pengaturan">
+              <svg viewBox="0 0 24 24" fill="#FF9F0A"><path d="M12 8a4 4 0 1 0 4 4 4.005 4.005 0 0 0-4-4Zm8.94 4.66-1.22-.7a7.94 7.94 0 0 0 0-1.92l1.22-.7a.5.5 0 0 0 .18-.68l-1.5-2.6a.5.5 0 0 0-.65-.2l-1.2.48A8.1 8.1 0 0 0 16.6 4l-.18-1.28A.5.5 0 0 0 15.93 2h-7.9a.5.5 0 0 0-.49.42L6.36 3.7a8.1 8.1 0 0 0-1.65.96l-1.2-.48a.5.5 0 0 0-.65.2L1.36 6.98a.5.5 0 0 0 .18.68l1.22.7a7.94 7.94 0 0 0 0 1.92l-1.22.7a.5.5 0 0 0-.18.68l1.5 2.6a.5.5 0 0 0 .65.2l1.2-.48a8.1 8.1 0 0 0 1.65.96l.18 1.28a.5.5 0 0 0 .49.42h7.9a.5.5 0 0 0 .49-.42L16.6 20.3a8.1 8.1 0 0 0 1.65-.96l1.2.48a.5.5 0 0 0 .65-.2l1.5-2.6a.5.5 0 0 0-.18-.68Z"/></svg>
+            </div>
+            <div class="mname">Pengaturan</div>
+          </div>
+          <div class="menu-item" onclick="switchTab('inbox')">
+            <div class="ico-wrap" title="Inbox">
+              <svg viewBox="0 0 24 24" fill="#FF3B30"><path d="M20 4H4a2 2 0 0 0-2 2v1l10 6 10-6V6a2 2 0 0 0-2-2Z"/><path d="M22 8l-10 6L2 8v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2Z"/></svg>
+            </div>
+            <div class="mname">Inbox</div>
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- ===== HOME ===== -->
+    <section id="home" class="view active fade">
+      <div class="card hero">
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <div class="muted">Limit Tersedia</div>
+            <div id="limitText" class="big">Belum ditetapkan</div>
+          </div>
+          <div id="statusChip" class="chip">Menunggu verifikasi</div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button id="btnApply" class="btn btn-primary" onclick="applyNow()">Ajukan Pinjaman</button>
+          <button class="btn btn-ghost" onclick="refreshStatus()">Perbarui</button>
+        </div>
+        <div id="blockNote" class="muted" style="display:none; margin-top:8px">
+          Ada pinjaman aktif. Ajukan lagi jika <b>lunas</b> atau <b>ditolak</b>.
+        </div>
+      </div>
+
+      <div class="card ticker-card">
+        <div class="ticker-head">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="#0EA5E9"><path d="M3 11h14l4-4v10l-4-4H3z"/></svg>
+          PENGUMUMAN
+        </div>
+        <div class="ticker"><div id="tickerText">Loading…</div></div>
+      </div>
+
+      <div class="card">
+        <div class="title">Status Pengajuan</div>
+        <div id="statusBadge" class="badge b-warn">Belum diajukan</div>
+        <div id="approvedWrap" style="display:none; margin-top:12px">
+          <div class="row" style="justify-content:space-between; width:100%; background:#F7FBFF; border:1px solid #E6F1FC; border-radius:14px; padding:12px">
+            <div>
+              <div class="muted">Jumlah Disetujui</div>
+              <div id="approvedAmt" style="font-size:1.4rem; font-weight:900">Rp 0</div>
+            </div>
+            <div class="badge b-ok">Keputusan Admin</div>
+          </div>
+          <div style="margin-top:10px" class="muted">Pencairan hanya di <b>Kantor Koperasi</b> (tidak online).</div>
+        </div>
+      </div>
+
+      <div id="instWrap" class="card" style="display:none">
+        <div class="title">Cicilan</div>
+        <div id="instList" style="display:grid; gap:10px"></div>
+      </div>
+
+      <div class="foot">Version 1.0.0 • Crafted by Anggara Pradana</div>
     </section>
-  </main>
 
-  <!-- BOTTOM NAV -->
-  <nav class="app-nav">
-    <button id="nav-home" class="active" onclick="showPage('home')">🏠<span style="font-size:12px">Home</span></button>
-    <button id="nav-savings" onclick="showPage('savings')">💰<span style="font-size:12px">Simpanan</span></button>
-    <button id="nav-loans" onclick="showPage('loans')">📄<span style="font-size:12px">Pinjaman</span></button>
-    <button id="nav-profile" onclick="showPage('profile')">👤<span style="font-size:12px">Profil</span></button>
-  </nav>
+    <!-- ===== LOANS ===== -->
+    <section id="loans" class="view fade">
+      <div class="card">
+        <div class="title">Daftar Pengajuan</div>
+        <div id="loansList" style="display:grid; gap:10px"></div>
+      </div>
+      <div class="foot">Version 1.0.0 • Crafted by Anggara Pradana</div>
+    </section>
 
-  <!-- --- SCRIPT (SYSTEM LOGIC PRESERVED) --- -->
-  <script>
-    // ==== Supabase (sama seperti sebelumnya) ====
-    const SUPABASE_URL = "https://rywikjgwvjawdnmxiqkh.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5d2lramd3dmphd2RubXhpcWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5NjMxOTYsImV4cCI6MjA3MjUzOTE5Nn0.4DiwlSjTgzVsu5skB2bDNRA8r1viklR8D2NXxtXDiG8";
-    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    // optional: nanti bisa di-set saat login
-    // window.currentUserId = "uuid-user-xxx";
-
-    // ----- small helper: set active bottom nav btn -----
-    function setActiveNav(key) {
-      document.querySelectorAll('nav.app-nav button').forEach(b => b.classList.remove('active'));
-      const id = { home:'nav-home', savings:'nav-savings', loans:'nav-loans', profile:'nav-profile' }[key];
-      if (id) document.getElementById(id).classList.add('active');
-    }
-
-    // ----- SHOW / NAVIGATION (ke halaman tanpa memecah sistem) -----
-    function showPage(page) {
-  setActiveNav(page === 'apply' ? 'nav-loans' : page);
-
-  const main = document.getElementById('content');
-
-  if (page === 'home') {
-    // gunakan template string, bukan outerHTML langsung
-    main.innerHTML = `
-      <section id="homeView">
-        <h2 style="color:#04263b;">Halo, <span id="homeName">Andi</span> 👋</h2>
-        <p class="muted">Ringkasan akun koperasi Anda. Gunakan menu cepat di bawah untuk mengakses fitur.</p>
-
-        <div class="home-grid" style="margin-top:14px;">
-          <div class="menu-tile" onclick="showPage('savings')">
-            <div class="menu-ico ico-blue">💰</div>
-            <div class="title">Simpanan</div>
-          </div>
-          <div class="menu-tile" onclick="showPage('loans')">
-            <div class="menu-ico ico-green">📄</div>
-            <div class="title">Pinjaman</div>
-          </div>
-          <div class="menu-tile" onclick="showPage('apply')">
-            <div class="menu-ico ico-pink">➕</div>
-            <div class="title">Ajukan Pinjaman</div>
-          </div>
-          <div class="menu-tile" onclick="showPage('riwayat')">
-            <div class="menu-ico ico-yellow">🕘</div>
-            <div class="title">Riwayat</div>
-          </div>
-          <div class="menu-tile" onclick="showPage('pengumuman')">
-            <div class="menu-ico ico-purple">📢</div>
-            <div class="title">Pengumuman</div>
-          </div>
-          <div class="menu-tile" onclick="showPage('profile')">
-            <div class="menu-ico ico-blue">👤</div>
-            <div class="title">Profil</div>
+    <!-- ===== ACCOUNT ===== -->
+    <section id="account" class="view fade">
+      <div class="card">
+        <div class="title">Akun Karyawan</div>
+        <div class="row">
+          <img id="avatar" alt="Foto" style="width:92px;height:92px;border-radius:50%;object-fit:cover;border:2px solid #9AD9FF;box-shadow:0 10px 30px rgba(34,211,238,.25)">
+          <div>
+            <div id="accName" style="font-weight:900; font-size:1.06rem">-</div>
+            <div id="accId" class="muted" style="font-weight:700">NIK/NIP: -</div>
+            <div class="row" style="margin-top:8px">
+              <label for="photo" class="btn btn-ghost" style="cursor:pointer">Ubah Foto</label>
+              <input id="photo" type="file" accept="image/*" onchange="onPhoto(event)" style="display:none">
+              <button class="btn btn-ghost" type="button" onclick="removePhoto()">Hapus Foto</button>
+            </div>
           </div>
         </div>
 
-        <div style="margin-top:16px;">
-          <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div><strong>Pinjaman Terbaru</strong><div class="muted" style="font-size:13px">Lihat pengajuan terbaru</div></div>
-              <div id="quickLoanCount" class="muted">—</div>
-            </div>
-            <div id="quickLoanList" style="margin-top:10px"></div>
+        <form style="margin-top:12px" onsubmit="event.preventDefault(); saveProfile()">
+          <label>Nama Lengkap</label><input id="p_nama" required>
+          <div class="grid2" style="margin-top:8px">
+            <div><label>Jabatan</label><input id="p_jabatan" placeholder="Perawat / Dokter / Staff"></div>
+            <div><label>Unit / Bagian</label><input id="p_unit" placeholder="IGD / ICU / Keuangan"></div>
           </div>
+          <div class="grid2" style="margin-top:8px">
+            <div><label>Tempat Lahir</label><input id="p_tempat" placeholder="Kota Kelahiran"></div>
+            <div><label>Tanggal Lahir</label><input id="p_tgl" type="date"></div>
+          </div>
+          <label style="margin-top:8px">Alamat</label><textarea id="p_alamat" placeholder="Jalan, RT/RW, Kel/Desa, Kecamatan, Kota/Kab."></textarea>
+          <label style="margin-top:8px">Nomor HP</label><input id="p_hp" inputmode="numeric" placeholder="62xxxxxxxxx">
+          <div class="row" style="justify-content:space-between; width:100%; margin-top:12px">
+            <button class="btn btn-ghost" type="button" onclick="switchTab('home')">Kembali</button>
+            <button class="btn btn-primary" type="submit">Simpan Profil</button>
+          </div>
+          <div id="saveOk" class="muted" style="display:none; margin-top:8px">Tersimpan ✔</div>
+        </form>
+      </div>
+      <div class="foot">Version 1.0.0 • Crafted by Anggara Pradana</div>
+    </section>
 
-          <div class="card">
-            <strong>Pengumuman</strong>
-            <div id="quickAnnouncement" class="muted" style="margin-top:8px">Tidak ada pengumuman.</div>
-          </div>
+    <!-- ===== SETTINGS ===== -->
+    <section id="settings" class="view fade">
+      <div class="card">
+        <div class="title">Pengaturan</div>
+        <div class="row" style="justify-content:space-between; width:100%; background:#F7FBFF; border:1px solid #E6F1FC; border-radius:14px; padding:12px">
+          <div class="muted">Notifikasi</div><div class="badge b-ok">Aktif</div>
         </div>
-      </section>
-    `;
+        <div class="row" style="justify-content:space-between; width:100%; background:#F7FBFF; border:1px solid #E6F1FC; border-radius:14px; padding:12px; margin-top:10px">
+          <div class="muted">Sesi</div><button class="btn btn-ghost" onclick="logout()">Keluar</button>
+        </div>
+      </div>
+      <div class="foot">Version 1.0.0 • Crafted by Anggara Pradana</div>
+    </section>
 
-    // reload data untuk home
-    refreshSummary();
-    loadQuickLoans();
-    loadQuickAnnouncement();
-    return;
-      }
+    <!-- ===== INBOX ===== -->
+    <section id="inbox" class="view fade">
+      <div class="card"><div class="title">Inbox</div><div class="muted">Notifikasi dari koperasi akan tampil di sini.</div></div>
+      <div class="foot">Version 1.0.0 • Crafted by Anggara Pradana</div>
+    </section>
 
-      if (page === 'savings') {
-        main.innerHTML = `<h2>Riwayat Simpanan</h2><div id="savings-list" class="card">Memuat data...</div>`;
-        loadSavings();
-        return;
-      }
+  </section>
+</div>
 
-      if (page === 'loans') {
-        main.innerHTML = `<h2>Riwayat Pinjaman</h2><div id="loans-list" class="card">Memuat data...</div>`;
-        loadLoans();
-        return;
-      }
+<script>
+/* ========= UTIL ========= */
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{ return d }}
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v))
+const idr=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n)
+const mask=(s,k=4)=> s ? s.slice(0,k)+'*'.repeat(Math.max(0,s.length-k-2))+s.slice(-2) : '-'
 
-      if (page === 'apply') {
-        main.innerHTML = `
-          <h2>Ajukan Pinjaman</h2>
-          <form id="loanForm" class="card" onsubmit="return submitLoan(event)">
-            <div class="form-field">
-              <label for="loanAmount">Jumlah Pinjaman (Rp)</label>
-              <input id="loanAmount" type="number" min="100000" step="1000" placeholder="contoh: 5000000" required />
-            </div>
-            <div class="form-field">
-              <label for="loanTenor">Tenor (bulan)</label>
-              <select id="loanTenor">
-                <option value="3">3</option>
-                <option value="6">6</option>
-                <option value="12" selected>12</option>
-                <option value="24">24</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="loanReason">Alasan Pengajuan</label>
-              <textarea id="loanReason" rows="3" placeholder="Tuliskan alasan..." required></textarea>
-            </div>
-            <div style="display:flex; gap:10px;">
-              <button class="btn-primary" id="loanSubmitBtn" type="submit">Ajukan Pinjaman</button>
-              <button type="button" onclick="showPage('loans')" style="padding:10px;border-radius:10px;border:1px solid #ddd;background:#fff">Batal</button>
-            </div>
-          </form>
-          <h2 style="margin-top:14px">Riwayat Pinjaman</h2>
-          <div id="loans-list" class="card">Memuat data...</div>
-        `;
-        loadLoans();
-        return;
-      }
+/* ========= SEED DEMO ========= */
+(function seed(){
+  if(!load('kbm_users',null)){
+    save('kbm_users',[{
+      nik:'3276010101010001', nip:'1001', nama:'Andi Demo', phone:'62812xxxxxxx', aktif:true, limit:null,
+      profile:{photo:'', jabatan:'Perawat', unit:'IGD', tempat:'Mamuju', tgl:'1992-06-21', alamat:'Jl. Contoh No.1'}
+    }]);
+  }
+  if(!load('kbm_news',null)){
+    save('kbm_news',[
+      "⚙️ Pemeliharaan sistem 02.00–03.00 WITA malam ini.",
+      "📌 Pengajuan hanya satu kali sampai pinjaman LUNAS.",
+      "💁 Pencairan hanya di kantor Koperasi (tidak online)."
+    ]);
+  }
+  if(!load('kbm_apps',null)) save('kbm_apps',[]);
+})();
+(function ensureDemo(){
+  const users = load('kbm_users', []);
+  if (!users.find(u => u.nik === '3276010101010001')) {
+    users.push({ nik:'3276010101010001', nip:'1001', nama:'Andi Demo', phone:'62812xxxxxxx', aktif:true, limit:null,
+      profile:{photo:'', jabatan:'Perawat', unit:'IGD', tempat:'Mamuju', tgl:'1992-06-21', alamat:'Jl. Contoh No.1'} });
+    save('kbm_users', users);
+  }
+})();
 
-      if (page === 'riwayat') {
-        main.innerHTML = `<h2>Riwayat Lengkap</h2><div id="all-history" class="card">Memuat data...</div>`;
-        // bisa gabungkan loadSavings + loadLoans jika diperlukan
-        loadSavingsForHistory();
-        loadLoansForHistory();
-        return;
-      }
+/* ========= STATE ========= */
+const state={ period:String(new Date().getFullYear()), status:'belum', approved:0, limit:null, installments:[] }
 
-      if (page === 'pengumuman') {
-        main.innerHTML = `<h2>Pengumuman</h2><div id="announcement-list" class="card">Memuat data...</div>`;
-        loadAnnouncements();
-        return;
-      }
+/* ========= SPLASH ========= */
+window.addEventListener('load', ()=>{
+  setTimeout(()=> document.getElementById('splash').classList.add('fade-out'), 700);
+});
 
-      if (page === 'profile') {
-        main.innerHTML = `
-          <h2>Profil Anggota</h2>
-          <div class="card">
-            <p><strong>Nama:</strong> <span id="prof-name">Angga Pradana</span></p>
-            <p><strong>NIP:</strong> <span id="prof-nip">RSBM001</span></p>
-            <p><strong>Email:</strong> <span id="prof-email">andi@rsbm.co.id</span></p>
-          </div>
-        `;
-        return;
-      }
+/* ========= AUTH ========= */
+function switchAuth(mode){
+  const L = document.getElementById('formLogin')
+  const R = document.getElementById('formReg')
+  if(mode==='reg'){ L.style.display='none'; R.style.display='block' }
+  else { R.style.display='none'; L.style.display='block' }
+}
+if(localStorage.getItem('kbm_auth')==='1'){ openApp() }
+
+function doSignup(){
+  const nik = document.getElementById('r_nik').value.trim()
+  const nip = document.getElementById('r_nip').value.trim()
+  const nama= document.getElementById('r_nama').value.trim()
+  const hp  = document.getElementById('r_hp').value.trim()
+  if(!/^\d{16}$/.test(nik)) return alert('NIK harus 16 digit')
+  if(!nik || !nip || !nama || !hp) return alert('Lengkapi semua data')
+  const users=load('kbm_users',[])
+  if(users.some(u=>u.nik===nik)) return alert('NIK sudah terdaftar, silakan login')
+  users.push({nik,nip,nama,phone:hp,aktif:true,limit:null,profile:{photo:'',jabatan:'',unit:'',tempat:'',tgl:'',alamat:''}})
+  save('kbm_users',users)
+  alert('Pendaftaran berhasil (DEMO). Silakan Login.')
+  switchAuth('login')
+}
+function doLogin(){
+  const nik=document.getElementById('nik').value.trim()
+  const nip=document.getElementById('nip').value.trim()
+  const users=load('kbm_users',[])
+  const u=users.find(x=>x.nik===nik && x.nip===nip && x.aktif!==false)
+  if(!u) return alert('Akun tidak ditemukan / tidak aktif')
+  localStorage.setItem('kbm_auth','1'); localStorage.setItem('kbm_nik',u.nik); localStorage.setItem('kbm_name',u.nama||'Karyawan')
+  state.limit = u.limit ?? null
+  openApp()
+}
+function logout(){
+  localStorage.removeItem('kbm_auth'); localStorage.removeItem('kbm_nik'); localStorage.removeItem('kbm_name')
+  location.reload()
+}
+
+/* ========= OPEN APP ========= */
+function openApp(){
+  document.getElementById('auth').classList.remove('active')
+  document.getElementById('auth').style.display='none'
+  document.getElementById('appView').classList.add('active')
+  document.getElementById('period').textContent = state.period
+  renderHome(); renderLoans(); renderAccount();
+}
+
+/* ========= TAB SWITCH ========= */
+function switchTab(id){
+  document.querySelectorAll('#appView > section').forEach(s=>s.classList.remove('active'))
+  document.getElementById(id).classList.add('active')
+  if(id==='home'){ renderHome() }
+  if(id==='loans'){ renderLoans() }
+  if(id==='account'){ renderAccount() }
+}
+
+/* ========= RULE ========= */
+function hasActiveLoan(nik){
+  const active = new Set(['menunggu','verifikasi','disetujui','dicairkan'])
+  const apps = load('kbm_apps',[]).filter(a=>a.nik===nik)
+  return apps.some(a=> active.has(String(a.status_admin||a.status_auto||'').toLowerCase()) )
+}
+
+/* ========= HOME ========= */
+function renderHome(){
+  const nik = localStorage.getItem('kbm_nik'); if(!nik) return
+  const users=load('kbm_users',[]); const u=users.find(x=>x.nik===nik) || {}
+  state.limit = u.limit ?? null
+  document.getElementById('limitText').textContent = state.limit ? idr(Number(state.limit)) : 'Belum ditetapkan'
+
+  const apps = load('kbm_apps',[]).filter(a=>a.nik===nik).sort((a,b)=>a.ts-b.ts)
+  if(apps.length){
+    const last = apps[apps.length-1]
+    const s = (last.status_admin || last.status_auto || 'menunggu').toLowerCase()
+    state.status = s; state.approved = Number(last.approved||0)
+  }else{ state.status='belum'; state.approved=0 }
+
+  const chip = document.getElementById('statusChip')
+  const badge = document.getElementById('statusBadge')
+  const map = {
+    'belum':['b-warn','Belum diajukan'],
+    'menunggu':['b-info','Menunggu verifikasi'],
+    'verifikasi':['b-info','Verifikasi Admin'],
+    'disetujui':['b-ok','Disetujui'],
+    'dicairkan':['b-ok','Dicairkan'],
+    'ditolak':['b-warn','Ditolak'],
+    'lunas':['b-ok','Lunas']
+  }
+  const [cls, text] = map[state.status] || ['b-warn','Belum diajukan']
+  chip.className = 'chip'; chip.textContent=text;
+  badge.className = 'badge '+cls; badge.textContent=text
+
+  const blocked = hasActiveLoan(nik)
+  document.getElementById('btnApply').disabled = blocked
+  document.getElementById('blockNote').style.display = blocked ? 'block' : 'none'
+
+  if(['disetujui','dicairkan','lunas'].includes(state.status) && state.approved>0){
+    document.getElementById('approvedWrap').style.display='block'
+    document.getElementById('approvedAmt').textContent = idr(state.approved)
+  }else{
+    document.getElementById('approvedWrap').style.display='none'
+  }
+
+  if(state.status==='dicairkan' || state.status==='lunas'){
+    if(!state.installments.length && state.approved>0){
+      const tenor=12, per=Math.round(state.approved/tenor)
+      state.installments = [...Array(tenor)].map((_,i)=>({n:i+1, due:`${new Date().getFullYear()}-${String(i+1).padStart(2,'0')}-10`, amt:per, paid:i<1}))
     }
+    renderInst(); document.getElementById('instWrap').style.display='block'
+  }else{
+    document.getElementById('instWrap').style.display='none'
+    state.installments=[]
+  }
 
-    // ---------------- DATA FUNCTIONS (preserve/extend system) ----------------
+  renderTicker();
+}
+function applyNow(){
+  const nik = localStorage.getItem('kbm_nik'); if(!nik) return alert('Belum login')
+  if(hasActiveLoan(nik)) return alert('Masih ada pinjaman aktif (belum lunas)')
+  const apps=load('kbm_apps',[]); apps.push({ts:Date.now(), nik, period:state.period, status_auto:'menunggu', status_admin:'', approved:0})
+  save('kbm_apps',apps); alert('Pengajuan terkirim. Menunggu verifikasi admin.'); refreshStatus()
+}
+function refreshStatus(){ renderHome(); renderLoans(); }
 
-    // loadSavings (sama struktural dgn sebelumnya, sesuaikan nama kolom: jenis_simpanan, jumlah, tanggal)
-    async function loadSavings() {
-      const { data, error } = await client
-        .from('savings')
-        .select('jenis_simpanan, jumlah, tanggal')
-        .order('tanggal', { ascending: false });
+/* ========= CICILAN ========= */
+function renderInst(){
+  const wrap=document.getElementById('instList'); wrap.innerHTML=''
+  state.installments.forEach(it=>{
+    const div=document.createElement('div')
+    div.style.cssText='display:flex;justify-content:space-between;align-items:center;border:1px solid #E6F1FC;border-radius:14px;padding:12px;background:#F7FBFF'
+    div.innerHTML=`<div><div style="font-weight:900">Cicilan #${it.n}</div><div class="muted">Jatuh tempo ${it.due}</div></div>
+                   <div style="text-align:right"><div style="font-weight:900">${idr(it.amt)}</div>
+                   <span class="badge ${it.paid?'b-ok':'b-warn'}">${it.paid?'Lunas':'Belum'}</span></div>`
+    wrap.appendChild(div)
+  })
+}
 
-      const list = document.getElementById('savings-list');
-      if (!list) return;
+/* ========= LIST PINJAMAN ========= */
+function renderLoans(){
+  const nik = localStorage.getItem('kbm_nik'); if(!nik) return
+  const list=document.getElementById('loansList'); list.innerHTML=''
+  const rows = load('kbm_apps',[]).filter(a=>a.nik===nik).sort((a,b)=>b.ts-a.ts)
+  rows.forEach(a=>{
+    const status=(a.status_admin||a.status_auto||'menunggu').toLowerCase()
+    const tag = status==='ditolak'?'b-warn':(['disetujui','dicairkan','lunas'].includes(status)?'b-ok':'b-info')
+    const t = new Date(a.ts).toLocaleString('id-ID',{dateStyle:'medium', timeStyle:'short'})
+    const approved = a.approved? `<div class="muted">Disetujui: <b>${idr(a.approved)}</b></div>` : ''
+    const item = document.createElement('div')
+    item.style.cssText='display:flex;justify-content:space-between;align-items:center;border:1px solid #E6F1FC;border-radius:14px;padding:12px;background:#F7FBFF'
+    item.innerHTML = `<div><div style="font-weight:900">Pengajuan ${a.period||new Date(a.ts).getFullYear()}</div><div class="muted">${t}</div>${approved}</div><span class="badge ${tag}">${status}</span>`
+    list.appendChild(item)
+  })
+}
 
-      if (error) {
-        list.innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
-        console.error(error);
-        return;
-      }
-      if (!data || data.length === 0) {
-        list.innerHTML = `<p class="muted">Belum ada simpanan.</p>`;
-        return;
-      }
+/* ========= ACCOUNT ========= */
+function currentUser(){
+  const nik = localStorage.getItem('kbm_nik'); if(!nik) return null
+  const users=load('kbm_users',[]); return users.find(u=>u.nik===nik)||null
+}
+function renderAccount(){
+  const u=currentUser(); if(!u) return
+  document.getElementById('accName').textContent = u.nama || 'Karyawan'
+  document.getElementById('accId').textContent = `NIK ${mask(u.nik)} • NIP ${mask(u.nip)}`
+  document.getElementById('avatar').src = u.profile?.photo || 'data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><rect width=%22128%22 height=%22128%22 rx=%2264%22 fill=%2316A9FF/><circle cx=%2264%22 cy=%2248%22 r=%2228%22 fill=%23E6F7FF/><rect x=%2220%22 y=%2276%22 width=%2288%22 height=%2238%22 rx=%2219%22 fill=%23CFF0FF/></svg>'
+  document.getElementById('p_nama').value   = u.nama || ''
+  document.getElementById('p_jabatan').value= u.profile?.jabatan || ''
+  document.getElementById('p_unit').value   = u.profile?.unit || ''
+  document.getElementById('p_tempat').value = u.profile?.tempat || ''
+  document.getElementById('p_tgl').value    = u.profile?.tgl || ''
+  document.getElementById('p_alamat').value = u.profile?.alamat || ''
+  document.getElementById('p_hp').value     = u.phone || ''
+}
+function saveProfile(){
+  const u=currentUser(); if(!u) return
+  u.nama = document.getElementById('p_nama').value.trim()
+  u.phone= document.getElementById('p_hp').value.trim()
+  u.profile = u.profile || {}
+  u.profile.jabatan = document.getElementById('p_jabatan').value.trim()
+  u.profile.unit    = document.getElementById('p_unit').value.trim()
+  u.profile.tempat  = document.getElementById('p_tempat').value.trim()
+  u.profile.tgl     = document.getElementById('p_tgl').value
+  u.profile.alamat  = document.getElementById('p_alamat').value.trim()
+  const users=load('kbm_users',[]); const i=users.findIndex(x=>x.nik===u.nik); if(i>-1){ users[i]=u; save('kbm_users',users) }
+  localStorage.setItem('kbm_name', u.nama||'Karyawan')
+  document.getElementById('accName').textContent = u.nama || 'Karyawan'
+  const ok=document.getElementById('saveOk'); ok.style.display='block'; setTimeout(()=>ok.style.display='none',1500)
+}
+function onPhoto(e){
+  const f=e.target.files[0]; if(!f) return
+  const r=new FileReader(); r.onload=()=>{
+    const img=new Image(); img.onload=()=>{
+      const s=256, c=document.createElement('canvas'); c.width=s; c.height=s; const ctx=c.getContext('2d')
+      const m=Math.min(img.width,img.height), sx=(img.width-m)/2, sy=(img.height-m)/2
+      ctx.drawImage(img,sx,sy,m,m,0,0,s,s); const data=c.toDataURL('image/jpeg',.85)
+      const u=currentUser(); if(!u) return; u.profile=u.profile||{}; u.profile.photo=data
+      const users=load('kbm_users',[]); const i=users.findIndex(x=>x.nik===u.nik); if(i>-1){ users[i]=u; save('kbm_users',users) }
+      document.getElementById('avatar').src=data
+    }; img.src=r.result
+  }; r.readAsDataURL(f); e.target.value=''
+}
+function removePhoto(){
+  const u=currentUser(); if(!u) return
+  if(u.profile) u.profile.photo=''
+  const users=load('kbm_users',[]); const i=users.findIndex(x=>x.nik===u.nik); if(i>-1){ users[i]=u; save('kbm_users',users) }
+  renderAccount()
+}
 
-      list.innerHTML = '';
-      data.forEach(s => {
-        const el = document.createElement('div');
-        el.className = 'card';
-        el.innerHTML = `
-          <p><strong>Jenis:</strong> ${s.jenis_simpanan}</p>
-          <p><strong>Jumlah:</strong> Rp ${Number(s.jumlah).toLocaleString('id-ID')}</p>
-          <p class="muted"><strong>Tanggal:</strong> ${new Date(s.tanggal).toLocaleDateString('id-ID')}</p>
-        `;
-        list.appendChild(el);
-      });
+/* ========= TICKER ========= */
+function renderTicker(){
+  const arr = load('kbm_news', [])
+  const txt = arr.length ? ("&nbsp;&nbsp;•&nbsp;&nbsp;" + arr.join("&nbsp;&nbsp;•&nbsp;&nbsp;")) : "Tidak ada pengumuman";
+  const el = document.getElementById('tickerText'); if(el) el.innerHTML = `<span>${txt}</span>`;
+}
 
-      // refresh totals
-      refreshSummary();
-    }
-
-    // loans loader with badges & card-left stripe (preserve + enhance)
-    function normalizeStatus(st) {
-      if (!st) return 'Menunggu';
-      const s = (''+st).toLowerCase();
-      if (s.includes('lunas')) return 'Lunas';
-      if (s.includes('setuju') || s.includes('jalan') || s.includes('berjalan') || s.includes('disetujui')) return 'Berjalan';
-      return 'Menunggu';
-    }
-    function statusToClasses(status){
-      const norm = normalizeStatus(status);
-      if (norm === 'Lunas') return { card:'card-lunas', badge:'badge-lunas', label:'Lunas' };
-      if (norm === 'Berjalan') return { card:'card-berjalan', badge:'badge-berjalan', label:'Berjalan' };
-      return { card:'card-menunggu', badge:'badge-menunggu', label:'Menunggu' };
-    }
-
-    async function loadLoans() {
-      const container = document.getElementById('loans-list');
-      if (!container) return;
-
-      const { data, error } = await client
-        .from('loans')
-        .select('id, jumlah, tenor, status, alasan, tanggal_pengajuan, tanggal_pencairan')
-        .order('tanggal_pengajuan', { ascending: false });
-
-      if (error) {
-        container.innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
-        console.error(error);
-        return;
-      }
-      if (!data || data.length === 0) {
-        container.innerHTML = `<p class="muted">Belum ada pinjaman.</p>`;
-        return;
-      }
-
-      container.innerHTML = '';
-      data.forEach(l => {
-        const cls = statusToClasses(l.status);
-        const el = document.createElement('div');
-        el.className = `card ${cls.card}`;
-        el.innerHTML = `
-          <p><strong>Jumlah:</strong> Rp ${Number(l.jumlah).toLocaleString('id-ID')}</p>
-          <p class="muted"><strong>Tenor:</strong> ${l.tenor} bulan</p>
-          <p><strong>Alasan:</strong> ${l.alasan || '-'}</p>
-          <p class="muted"><strong>Pengajuan:</strong> ${l.tanggal_pengajuan ? new Date(l.tanggal_pengajuan).toLocaleDateString('id-ID') : '-'}</p>
-          <p class="muted"><strong>Pencairan:</strong> ${l.tanggal_pencairan ? new Date(l.tanggal_pencairan).toLocaleDateString('id-ID') : '-'}</p>
-          <p><strong>Status:</strong> <span class="badge ${cls.badge}">${cls.label}</span></p>
-        `;
-        container.appendChild(el);
-      });
-
-      // update summary totals
-      refreshSummary();
-    }
-
-    // quick loan preview on Home
-    async function loadQuickLoans() {
-      const { data } = await client
-        .from('loans')
-        .select('id, jumlah, status, tanggal_pengajuan')
-        .order('tanggal_pengajuan', { ascending: false })
-        .limit(3);
-
-      const area = document.getElementById('quickLoanList');
-      if (!area) return;
-      if (!data || data.length === 0) { area.innerHTML = '<div class="muted">Belum ada pinjaman</div>'; return; }
-      area.innerHTML = '';
-      data.forEach(l => {
-        const norm = normalizeStatus(l.status);
-        area.innerHTML += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(0,0,0,0.04)"><div><strong>Rp ${Number(l.jumlah).toLocaleString('id-ID')}</strong><div class="muted" style="font-size:12px">${new Date(l.tanggal_pengajuan).toLocaleDateString('id-ID')}</div></div><div class="muted">${norm}</div></div>`;
-      });
-      document.getElementById('quickLoanCount').innerText = data.length + ' terbaru';
-    }
-
-    // quick announcement preview
-    async function loadQuickAnnouncement() {
-      const { data } = await client
-        .from('announcements')
-        .select('judul, isi, tanggal')
-        .order('tanggal', { ascending: false })
-        .limit(1);
-
-      const area = document.getElementById('quickAnnouncement');
-      if (!area) return;
-      if (!data || data.length === 0) { area.innerText = 'Tidak ada pengumuman.'; return; }
-      area.innerText = `${data[0].judul} — ${data[0].isi}`;
-    }
-
-    // announcements list page
-    async function loadAnnouncements() {
-      const container = document.getElementById('announcement-list');
-      if (!container) return;
-      const { data, error } = await client
-        .from('announcements')
-        .select('judul, isi, tanggal')
-        .order('tanggal', { ascending: false });
-
-      if (error) { container.innerHTML = `<p style="color:red">${error.message}</p>`; return; }
-      if (!data || data.length === 0) { container.innerHTML = `<p class="muted">Tidak ada pengumuman.</p>`; return; }
-
-      container.innerHTML = data.map(a => `<div style="margin-bottom:10px"><strong>${a.judul}</strong><div class="muted" style="font-size:13px">${a.isi}</div><div class="muted" style="font-size:12px">${new Date(a.tanggal).toLocaleDateString('id-ID')}</div></div>`).join('');
-    }
-
-    // History loaders for riwayat page (optional combined)
-    async function loadSavingsForHistory(){
-      const { data } = await client.from('savings').select('jenis_simpanan, jumlah, tanggal').order('tanggal',{ascending:false});
-      const el = document.getElementById('all-history');
-      if (!el) return;
-      el.innerHTML = '<h3>Simpanan</h3>' + (data && data.length ? data.map(s=>`<div style="margin-bottom:8px">${s.jenis_simpanan} — Rp ${Number(s.jumlah).toLocaleString('id-ID')} <div class="muted">${new Date(s.tanggal).toLocaleDateString('id-ID')}</div></div>`).join('') : '<div class="muted">Belum ada</div>');
-    }
-    async function loadLoansForHistory(){
-      const { data } = await client.from('loans').select('jumlah,tenor,status,tanggal_pengajuan').order('tanggal_pengajuan',{ascending:false});
-      const el = document.getElementById('all-history');
-      if (!el) return;
-      el.innerHTML += '<hr/><h3>Pinjaman</h3>' + (data && data.length ? data.map(l=>`<div style="margin-bottom:8px">Rp ${Number(l.jumlah).toLocaleString('id-ID')} — ${normalizeStatus(l.status)} <div class="muted">${new Date(l.tanggal_pengajuan).toLocaleDateString('id-ID')}</div></div>`).join('') : '<div class="muted">Belum ada</div>');
-    }
-
-    // submitLoan (preserve behavior) — uses window.currentUserId if set
-    async function submitLoan(e){
-      e.preventDefault();
-      const btn = document.getElementById('loanSubmitBtn');
-      if (btn) btn.disabled = true;
-
-      const jumlah = Number(document.getElementById('loanAmount').value || 0);
-      const tenor  = parseInt(document.getElementById('loanTenor').value || '0',10);
-      const alasan = (document.getElementById('loanReason').value || '').trim();
-
-      if (!jumlah || !tenor || !alasan) {
-        alert('Mohon lengkapi semua data pengajuan.');
-        if (btn) btn.disabled = false;
-        return false;
-      }
-
-      const row = {
-        jumlah,
-        tenor,
-        alasan,
-        status: 'Menunggu',
-        tanggal_pengajuan: new Date().toISOString().slice(0,10)
-      };
-      if (window.currentUserId) row.user_id = window.currentUserId;
-
-      const { error } = await client.from('loans').insert([row]);
-      if (error) {
-        alert('Gagal mengajukan pinjaman: ' + error.message);
-        if (btn) btn.disabled = false;
-        return false;
-      }
-
-      alert('Pengajuan pinjaman berhasil dikirim!');
-      if (btn) btn.disabled = false;
-      // refresh list
-      loadLoans();
-      return false;
-    }
-
-    // refresh summary: totals for savings and active loans
-    async function refreshSummary(){
-      // total simpanan
-      try {
-        const { data: sdata } = await client.from('savings').select('jumlah');
-        const totalS = (sdata && sdata.length) ? sdata.reduce((a,b)=>a+Number(b.jumlah),0) : 0;
-        document.getElementById('totalSimpanan').innerText = 'Rp ' + totalS.toLocaleString('id-ID');
-        document.getElementById('savingsCount').innerText = (sdata? sdata.length : 0) + ' transaksi';
-      } catch(err){ console.warn(err); }
-
-      // total pinjaman aktif (non-lunas)
-      try {
-        const { data: ldata } = await client.from('loans').select('jumlah,status');
-        const active = (ldata || []).filter(x => normalizeStatus(x.status) !== 'Lunas');
-        const totalL = active.reduce((a,b)=>a+Number(b.jumlah),0);
-        document.getElementById('totalPinjaman').innerText = 'Rp ' + totalL.toLocaleString('id-ID');
-        document.getElementById('loansCount').innerText = (ldata? ldata.length : 0) + ' pinjaman';
-      } catch(err){ console.warn(err); }
-    }
-
-    // initial load
-    (async function init(){
-      // set initial small UI values (can be replaced by login later)
-      document.getElementById('miniName').innerText = 'Angga Pradana';
-      document.getElementById('homeName').innerText = 'Angga';
-
-      // load summary & quicks
-      await refreshSummary();
-      await loadQuickLoans();
-      await loadQuickAnnouncement();
-
-      // subscribe realtime (optional) to refresh summary and lists automatically
-      client
-        .channel('realtime-all')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'savings' }, payload => {
-          refreshSummary();
-          if (document.getElementById('savings-list')) loadSavings();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, payload => {
-          refreshSummary();
-          if (document.getElementById('loans-list')) loadLoans();
-        })
-        .subscribe()
-        .catch(e => console.warn('subscribe:', e));
-    })();
-
-    // set default page home
-    showPage('home');
-  </script>
+/* ========= ADMIN DEMO (console) =========
+   demoAdmin({limit:20000000})
+   demoAdmin({status:'disetujui', approved:12000000})
+   demoAdmin({status:'dicairkan', approved:12000000})
+   demoAdmin({status:'ditolak'})
+   demoAdmin({status:'lunas'})
+*/
+window.demoAdmin = function(o={}){
+  const nik=localStorage.getItem('kbm_nik'); if(!nik) return alert('Login dulu')
+  const users=load('kbm_users',[]); const u=users.find(x=>x.nik===nik)
+  if('limit' in o){ u.limit = Number(o.limit)||null; save('kbm_users',users) }
+  const apps=load('kbm_apps',[]); let app=apps.filter(a=>a.nik===nik).sort((a,b)=>a.ts-b.ts).pop()
+  if(o.status){
+    if(!app){ app={ts:Date.now(), nik, period:state.period, status_auto:'menunggu', status_admin:'', approved:0}; apps.push(app) }
+    app.status_admin=String(o.status).toLowerCase()
+    if('approved' in o) app.approved=Number(o.approved)||0
+    save('kbm_apps',apps)
+  }
+  renderHome(); renderLoans()
+}
+</script>
 </body>
 </html>
-
-
